@@ -1,0 +1,3 @@
+/home/john/nginy/cmake/CMakeFiles/nginy.dir
+/home/john/nginy/cmake/CMakeFiles/edit_cache.dir
+/home/john/nginy/cmake/CMakeFiles/rebuild_cache.dir

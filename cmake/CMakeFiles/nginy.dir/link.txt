@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/nginy.dir/src/main.c.o -o nginy 
