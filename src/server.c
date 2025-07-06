@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -36,15 +37,22 @@ int createServer(const char *bindIp, int bindPort) {
 void handleConnection(int serverFileDescriptor) {
   socklen_t addressSize;
   struct sockaddr_in remoteAddress;
+  char receiveBuffer[1024] = {};
+
   addressSize = sizeof(remoteAddress);
   int connectionFileDescriptor = accept(
       serverFileDescriptor, (struct sockaddr *)&remoteAddress, &addressSize);
   assert(connectionFileDescriptor != -1);
-  char receiveBuffer[1024] = {};
+
   recv(connectionFileDescriptor, receiveBuffer, 1024, 0);
-  printf("%s\n", receiveBuffer);
+  char *splitBuffer = strndup(receiveBuffer, 1024);
+  char *toSend = splitBuffer;
+  printf("%s\n", splitBuffer);
+  char *token = strsep(&toSend, "\n");
+  printf("%s\n", token);
   send(connectionFileDescriptor, SERVER_RESPONSE, strlen(SERVER_RESPONSE), 0);
   closeFileDescriptor(connectionFileDescriptor);
+  free(splitBuffer);
 }
 
 void closeFileDescriptor(int fileDescriptor) {
