@@ -1,8 +1,0 @@
-[
-{
-  "directory": "/home/john/nginy/cmake",
-  "command": "/usr/bin/cc -DSOME_DEFINITION   -o CMakeFiles/nginy.dir/src/main.c.o -c /home/john/nginy/src/main.c",
-  "file": "/home/john/nginy/src/main.c",
-  "output": "CMakeFiles/nginy.dir/src/main.c.o"
-}
-]
