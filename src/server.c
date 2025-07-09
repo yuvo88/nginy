@@ -2,7 +2,6 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <netinet/in.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -39,7 +38,7 @@ int createServer(const char *bindIp, int bindPort) {
   return serverFileDescriptor;
 }
 
-void handleConnection(int serverFileDescriptor) {
+void handleConnection(int serverFileDescriptor, void *handlerFunction) {
   socklen_t addressSize;
   struct sockaddr_in remoteAddress;
   char receiveBuffer[RECEIEVE_BUFFER_LENGTH] = {};
@@ -51,13 +50,9 @@ void handleConnection(int serverFileDescriptor) {
 
   recv(connectionFileDescriptor, receiveBuffer, RECEIEVE_BUFFER_LENGTH, 0);
   HttpRequest parsedRequest = parseHttpRequest(receiveBuffer);
-  printf("method: %d, uri: %s\n", parsedRequest.requestLine.method,
-         parsedRequest.requestLine.uri);
-  for (int i = 0; i < parsedRequest.headers.length; i++) {
-    printf("key: %s, value: %s\n", parsedRequest.headers.headers[i].headerKey,
-           parsedRequest.headers.headers[i].headerValue);
-  }
-  send(connectionFileDescriptor, SERVER_RESPONSE, strlen(SERVER_RESPONSE), 0);
+  char *(*callableHandlerFunction)(HttpRequest httpRequest) = handlerFunction;
+  char *returnValue = callableHandlerFunction(parsedRequest);
+  send(connectionFileDescriptor, returnValue, strlen(returnValue), 0);
   closeFileDescriptor(connectionFileDescriptor);
 }
 
@@ -71,14 +66,17 @@ HttpRequest parseHttpRequest(char *receiveBuffer) {
   char *runner = splitBuffer;
   char *header;
   char *requestLineString = strsep(&runner, "\n");
+
   httpRequest.requestLine = parseRequestLine(requestLineString);
   header = strsep(&runner, "\n");
+
   for (int i = 0; header[0] != '\r' && i < HEADER_ARRAY_LENGTH; i++) {
     HttpHeader httpHeader = parseHttpHeader(header);
     httpRequest.headers.headers[i] = httpHeader;
     httpRequest.headers.length = i + 1;
     header = strsep(&runner, "\n");
   }
+
   free(splitBuffer);
   return httpRequest;
 }
@@ -88,13 +86,15 @@ HttpRequestLine parseRequestLine(char *requestLineString) {
   char *splitBuffer = strndup(requestLineString, RECEIEVE_BUFFER_LENGTH);
   char *runner = splitBuffer;
   char *method = strsep(&runner, " ");
+
   if (strncmp(method, "GET", MAX_METHOD_LEN) != 0) {
     httpRequestLine.method = UNKNOWN;
   } else {
     httpRequestLine.method = GET;
   }
+
   char *uri = strsep(&runner, " ");
-  strncpy(httpRequestLine.uri, uri, URI_LENGTH);
+  strncpy(httpRequestLine.uriPath, uri, URI_LENGTH);
 
   free(splitBuffer);
   return httpRequestLine;
@@ -105,8 +105,19 @@ HttpHeader parseHttpHeader(char *httpHeaderString) {
   char *splitBuffer = strndup(httpHeaderString, RECEIEVE_BUFFER_LENGTH);
   char *runner = splitBuffer;
   char *headerKey = strsep(&runner, ":");
+
   strncpy(httpHeader.headerKey, headerKey, HEADER_KEY_SIZE);
   char *headerValue = strsep(&runner, ":");
   strncpy(httpHeader.headerValue, headerValue + 1, HEADER_VALUE_SIZE);
+
   return httpHeader;
+}
+
+HttpUri parseUri(char *uri) {
+  HttpUri httpUri;
+  char *splitBuffer = strndup(uri, RECEIEVE_BUFFER_LENGTH);
+  char *runner = splitBuffer;
+  char *path = strsep(&runner, "?");
+  strncpy(httpUri.path, path, URI_LENGTH);
+  char *query = strsep(&runner, "?");
 }
